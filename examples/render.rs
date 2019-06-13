@@ -9,6 +9,8 @@ use font_kit::family_name::FamilyName;
 use font_kit::hinting::HintingOptions;
 use font_kit::properties::Properties;
 use font_kit::source::SystemSource;
+use font_kit::loader::FontTransform;
+
 
 use skribo::{
     layout, layout_run, make_layout, FontCollection, FontFamily, FontRef, Layout, TextStyle,
@@ -17,7 +19,7 @@ use skribo::{
 #[cfg(target_family = "windows")]
 const DEVANAGARI_FONT_POSTSCRIPT_NAME: &str = "NirmalaUI";
 #[cfg(target_os = "macos")]
-const DEVANAGARI_FONT_POSTSCRIPT_NAME: &str = "DevanagariUI";
+const DEVANAGARI_FONT_POSTSCRIPT_NAME: &str = "NotoSerifDevanagari";
 
 struct SimpleSurface {
     width: usize,
@@ -68,6 +70,9 @@ impl SimpleSurface {
     }
 
     fn paint_layout(&mut self, layout: &Layout, x: i32, y: i32) {
+        //TODO: use this transform
+        let transform = FontTransform::identity();
+
         for glyph in &layout.glyphs {
             let glyph_id = glyph.glyph_id;
             let glyph_x = (glyph.offset.x as i32) + x;
@@ -78,6 +83,7 @@ impl SimpleSurface {
                 .raster_bounds(
                     glyph_id,
                     layout.size,
+                    &transform,
                     &Point2D::zero(),
                     HintingOptions::None,
                     RasterizationOptions::GrayscaleAa,
@@ -104,6 +110,7 @@ impl SimpleSurface {
                         glyph_id,
                         // TODO(font-kit): this is missing anamorphic and skew features
                         layout.size,
+                        &transform,
                         &neg_origin,
                         HintingOptions::None,
                         RasterizationOptions::GrayscaleAa,
@@ -131,7 +138,7 @@ fn make_collection() -> FontCollection {
 
     let font = source
         .select_by_postscript_name(DEVANAGARI_FONT_POSTSCRIPT_NAME)
-        .unwrap()
+        .expect("failed to select Devanagari font")
         .load()
         .unwrap();
     collection.add_family(FontFamily::new_from_font(font));
@@ -146,6 +153,7 @@ fn main() {
         .load()
         .unwrap();
 
+    let identity_transform = FontTransform::identity();
     let data = font.copy_font_data();
     println!("font data: {:?} bytes", data.map(|d| d.len()));
 
@@ -161,6 +169,7 @@ fn main() {
         font.raster_bounds(
             glyph_id,
             32.0,
+            &identity_transform,
             &Point2D::zero(),
             HintingOptions::None,
             RasterizationOptions::GrayscaleAa
@@ -172,6 +181,7 @@ fn main() {
         glyph_id,
         // TODO(font-kit): this is missing anamorphic and skew features
         style.size,
+        &identity_transform,
         &Point2D::zero(),
         HintingOptions::None,
         RasterizationOptions::GrayscaleAa,
@@ -182,6 +192,7 @@ fn main() {
         &mut canvas,
         glyph_id,
         style.size,
+        &identity_transform,
         &Point2D::new(16.0, 16.0),
         HintingOptions::None,
         RasterizationOptions::GrayscaleAa,
